@@ -4,7 +4,7 @@ import pandas as pd
 import datetime
 
 # ==========================================
-# 1. CƠ SỞ DỮ LIỆU & HỆ THỐNG PHẦN THƯỞNG KÉP
+# 1.Ơ SỞ DỮ LIỆU & HỆ THỐNG PHẦN THƯỞNG KÉP
 # ==========================================
 @st.cache_resource
 def init_db():
@@ -34,7 +34,7 @@ def init_db():
         ('25090221@vnu.edu.vn', 'Sinh viên 4', 0, 0, 'Y đa khoa (UMP)', 'student'),
         ('23071100@vnu.edu.vn', 'Sinh viên 5', 120, 0, 'Sư phạm Tiếng Anh (ULIS)', 'student'),
         ('24080334@vnu.edu.vn', 'Sinh viên 6', 35, 5, 'Quản trị kinh doanh (HSB)', 'student'),
-        ('25020506@vnu.edu.vn', 'Sinh viên 7', 5, 0, 'Công nghệ Nông nghiệp (UET)', 'student')
+        ('25123456@vnu.edu.vn', 'Sinh viên 7', 5, 0, 'Trí tuệ nhân tạo (UET)', 'student')
     ]
     for u in sample_users:
         c.execute("INSERT OR IGNORE INTO users (username, full_name, vnu_credit, vnu_token, major, role) VALUES (?, ?, ?, ?, ?, ?)", u)
@@ -72,14 +72,14 @@ conn = init_db()
 st.title("🎓 VNU S-CONNECT")
 st.markdown("*Hệ sinh thái tri thức và Kết nối học tập nội bộ ĐHQGHN*")
 
-# --- THANH BÊN (SIDEBAR): ĐĂNG NHẬP / ĐĂNG XUẤT ---
+# --- THANH BÊN: ĐĂNG NHẬP / ĐĂNG XUẤT ---
 with st.sidebar:
     if not st.session_state.logged_in:
         st.header("🔐 Đăng nhập hệ thống")
         st.caption("Giả lập cổng đăng nhập @vnu.edu.vn")
         
         # Đăng nhập 
-        msv_input = st.text_input("Tên đăng nhập (Mã sinh viên):")
+        msv_input = st.text_input("Tên đăng nhập:")
         pass_input = st.text_input("Mật khẩu:", type="password", help="Bản demo: Nhập mật khẩu bất kỳ")
         
         st.info("Gợi ý test:\n- Admin: **vnusconnect@vnu.edu.vn**\n- Sinh viên: **25022976@vnu.edu.vn**")
@@ -191,7 +191,6 @@ else:
                 stars_count = min(5, (row['upvotes'] // 5) + 1) if row['upvotes'] > 0 else 0
                 star_display = "⭐" * stars_count if stars_count > 0 else "😶 *Chưa có đánh giá*"
 
-                # Giao diện Expander giống Mentor
                 with st.expander(f"📄 {row['title']} | Mã HP: {row['subject_code']}"):
                     col_info, col_vote = st.columns([3, 1])
 
@@ -202,7 +201,7 @@ else:
                         st.markdown(f"**Đánh giá:** {star_display} ({row['upvotes']} lượt)")
                         
                         # Nút bấm mở tài liệu
-                        st.link_button("🚀 Mở tài liệu (Google Drive)", row['drive_link'], use_container_width=True)
+                        st.link_button("🚀 Mở tài liệu ", row['drive_link'], use_container_width=True)
 
                     with col_vote:
                         st.write("**Vote tài liệu này?**")
@@ -253,26 +252,32 @@ else:
         if action == "Tìm Mentor / Đồng đội":
             st.write("**Danh sách Mentor đang sẵn sàng hỗ trợ:**")
             query_mentor = """
-                SELECT m.*, u.full_name, u.vnu_credit 
+                SELECT m.*, u.full_name, u.vnu_credit, u.major, u.role
                 FROM mentors m
                 JOIN users u ON m.username = u.username
                 WHERE m.status = 'Sẵn sàng'
             """
             df_mentors = pd.read_sql_query(query_mentor, conn)
-
             if not df_mentors.empty:
                 for _, m in df_mentors.iterrows():
-                    # Hiển thị Họ tên thay vì username ở tiêu đề
-                    with st.expander(f"👤 Mentor: {m['full_name']} - ⭐ **Điểm uy tín (Credit):** {m['vnu_credit']} - 📍 {m['location']}"):
+                    role_vn = "🛡️ Quản trị viên" if m['role'] == 'admin' else "🎓 Sinh viên"
+                    
+                    with st.expander(f"**👤 Mentor:** {m['full_name']} | **⭐ Điểm uy tín:** {m['vnu_credit']} PT | 📍 {m['location']}"):
                         
-                        #st.markdown(f"⭐ **Điểm uy tín (Credit):** {m['vnu_credit']} PT")
-                        #st.write(f"**🆔 Username:** {m['username']}") # Hiển thị thêm để định danh nếu cần
-                        st.write(f"**📚 Thế mạnh / Nhận hỗ trợ môn:** {m['strong_subjects']}")
-                        st.write(f"**📞 Thông tin liên hệ:** {m['contact_info']}")
+                        st.markdown(f"**Vai trò:** {role_vn}")
                         
-                        st.caption(f"Trạng thái: {m['status']}")
+                        
+                        st.write(f"**Chuyên ngành:** {m['major']}")
+                        #st.write(f"**🆔 Mã định danh:** {m['username']}")
+
+                    
+                        st.write(f"**📚 Thế mạnh môn:** {m['strong_subjects']}")
+                        st.write(f"**📞 Thông tin liên lạc:** {m['contact_info']}")
+                        
+                        st.divider()
+                        st.caption(f"Trạng thái hệ thống: {m['status']}")
             else:
-                st.write("Hiện tại chưa có Mentor nào đăng ký.")
+                st.info("Hiện tại chưa có Mentor nào đăng ký.")
                 
         else:
             st.info("Đăng ký làm Mentor để hỗ trợ cộng đồng và nhận thêm VNU-Credit!")
